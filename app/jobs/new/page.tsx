@@ -71,9 +71,6 @@ function NewJobForm() {
                 <span className="text-rust">LABOR</span> CONNECT
               </span>
             </Link>
-            <Link href="/jobs" className="text-sm text-gray-300 hover:text-white transition-colors">
-              Cancel
-            </Link>
           </div>
         </div>
       </nav>
