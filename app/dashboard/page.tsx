@@ -127,6 +127,25 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link href="/jobs">
+              <Button variant="secondary">Browse Jobs</Button>
+            </Link>
+            {isWorker && (
+              <Link href="/dashboard/jobs">
+                <Button variant="secondary">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  My bids
+                </Button>
+              </Link>
+            )}
+            {isClient && (
+              <Link href="/dashboard/jobs">
+                <Button variant="secondary">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  My Jobs
+                </Button>
+              </Link>
+            )}
             {isClient && (
               <Link href="/jobs/new">
                 <Button>
@@ -135,9 +154,6 @@ export default function DashboardPage() {
                 </Button>
               </Link>
             )}
-            <Link href="/jobs">
-              <Button variant="secondary">Browse Jobs</Button>
-            </Link>
           </div>
         </div>
 
@@ -146,7 +162,6 @@ export default function DashboardPage() {
           
           {/* Left Column: Activity & Stats (2/3 width) */}
           <div className="lg:col-span-2 space-y-8">
-            
             {/* Dynamic Stats */}
             {stats.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

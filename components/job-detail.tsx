@@ -2,7 +2,6 @@
 
 import { Bookmark, Share2, MapPin, DollarSign, Calendar, Tag } from "lucide-react";
 import { Job } from "./job-card";
-import Button from "./button";
 
 interface JobDetailProps {
   job: Job;
@@ -55,9 +54,12 @@ export default function JobDetail({ job, onApply }: JobDetailProps) {
       </div>
 
       <div className="flex items-center gap-3 mt-6">
-        <Button size="md" onClick={onApply}>
-          Apply / Bid
-        </Button>
+        <button
+          onClick={onApply}
+          className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-rust text-white text-sm font-semibold hover:bg-rust/90 transition"
+        >
+          Submit Bid
+        </button>
         <button
           aria-label="Bookmark job"
           className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"

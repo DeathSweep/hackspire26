@@ -6,6 +6,7 @@ import { Search, MapPin, SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import JobCard, { Job } from "@/components/job-card";
 import JobDetail from "@/components/job-detail";
+import BidModal from "@/components/bid-modal";
 
 const filters = ["Budget", "Location", "Skills", "Status", "Deadline", "Date posted"];
 
@@ -16,6 +17,7 @@ export default function JobsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const [bidModalOpen, setBidModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
@@ -67,6 +69,11 @@ export default function JobsPage() {
   }, []);
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? null;
+
+  const handleApply = () => {
+    if (!selectedJob) return;
+    setBidModalOpen(true);
+  };
 
   const filtered = jobs.filter((job) => {
     const q = search.toLowerCase();
@@ -186,7 +193,7 @@ export default function JobsPage() {
             {/* Right: job detail (desktop) */}
             <div className="flex-1 hidden lg:block">
               {selectedJob ? (
-                <JobDetail job={selectedJob} onApply={() => {}} />
+                <JobDetail job={selectedJob} onApply={handleApply} />
               ) : (
                 <div className="bg-white dark:bg-navy/50 border border-gray-200 dark:border-white/10 rounded-xl p-12 text-center min-h-[500px] flex items-center justify-center">
                   <p className="text-gray-400">Select a job to view details</p>
@@ -196,6 +203,19 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {/* Bid Modal */}
+      {selectedJob && (
+        <BidModal
+          job={selectedJob}
+          open={bidModalOpen}
+          onClose={() => setBidModalOpen(false)}
+          onSuccess={() => {
+            // Optional: refresh jobs list or show a toast
+            console.log("Bid submitted successfully");
+          }}
+        />
+      )}
     </div>
   );
 }

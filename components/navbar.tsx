@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Layers, Menu, X, Sun, Moon } from "lucide-react";
+import { Layers, Menu, X, Sun, Moon, ChevronDown, LogOut, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client"; // adjust path if needed
 import type { User } from "@supabase/supabase-js";
 
@@ -18,6 +18,8 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
 
@@ -84,6 +86,23 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setDropdownOpen(false);
+    setOpen(false);
+  };
+
   // Extract first name for the UI
   const firstName = displayName ? displayName.split(" ")[0] : "";
 
@@ -129,12 +148,42 @@ export default function Navbar() {
             </button>
 
             {user ? (
-              <Link
-                href="/dashboard"
-                className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-rust transition-colors"
-              >
-                Welcome, <span className="font-bold text-slate-900 dark:text-white">{firstName}</span>!
-              </Link>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center space-x-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-rust transition-colors"
+                >
+                  <span>
+                    Welcome, <span className="font-bold text-slate-900 dark:text-white">{firstName}</span>
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      dropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg py-1.5 z-50">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </Link>
+                    <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex items-center space-x-3">
                 <Link
@@ -188,15 +237,28 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <div className="flex flex-col space-y-3 pt-4 pb-2 mt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col space-y-1 pt-4 pb-2 mt-2 border-t border-slate-100 dark:border-slate-800">
               {user ? (
-                <Link
-                  href="/dashboard"
-                  className="block px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300"
-                  onClick={() => setOpen(false)}
-                >
-                  Welcome, <span className="font-bold text-slate-900 dark:text-white">{firstName}</span>!
-                </Link>
+                <>
+                  <div className="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Welcome, <span className="font-bold text-slate-900 dark:text-white">{firstName}</span>!
+                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-rust transition-colors"
+                    onClick={() => setOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                  </button>
+                </>
               ) : (
                 <div className="flex flex-col space-y-2 px-3">
                   <Link
