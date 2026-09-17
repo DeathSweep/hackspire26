@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Layers, MapPin, DollarSign, Calendar, X } from "lucide-react";
+import { Layers, MapPin, DollarSign, Calendar, X, Lock } from "lucide-react";
 import Button from "@/components/button";
-import { createClient } from "@/lib/supabase/client"; // adjust path if needed
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+
+type Profile = {
+  id: string;
+  role: string[] | null;
+};
 
 export default function NewJobPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -22,6 +32,33 @@ export default function NewJobPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoadingAuth(false);
+        return;
+      }
+
+      setUser(user);
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData) {
+        setProfile(profileData as Profile);
+      }
+
+      setLoadingAuth(false);
+    }
+
+    loadUser();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -88,6 +125,51 @@ export default function NewJobPage() {
       setLoading(false);
     }
   };
+
+  const isClient = profile?.role?.includes("client") ?? false;
+
+  if (loadingAuth) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-4 border-rust/30 border-t-rust rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-navy dark:text-white mb-3">Sign in required</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">You must be logged in to post a job.</p>
+          <Link href="/login">
+            <Button>Sign In</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isClient) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-navy dark:text-white mb-3">Access denied</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
+            Only clients can post jobs. 
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
