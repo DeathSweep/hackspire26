@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import ParticlesBackgroundClient from "@/components/ParticlesBackgroundClient";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +29,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Navbar />
-        <ParticlesBackgroundClient/>
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

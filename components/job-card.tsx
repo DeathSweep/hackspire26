@@ -4,15 +4,16 @@ import { Bookmark } from "lucide-react";
 
 export interface Job {
   id: string;
+  client_id: string | null;
   title: string;
-  company: string;
-  location: string;
-  pay: string;
-  type: string;
-  skills: string[];
-  description: string;
-  easilyApply: boolean;
-  postedAt: string;
+  description: string | null;
+  budget: number | null;
+  location: string | null;
+  skills: string[] | null;
+  status: "open" | "in_progress" | "completed" | "closed" | null;
+  deadline: string | null; // date
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface JobCardProps {
@@ -21,6 +22,23 @@ interface JobCardProps {
   onSelect?: () => void;
   onBookmark?: () => void;
   bookmarked?: boolean;
+}
+
+function formatBudget(budget: number | null) {
+  if (budget == null) return "Budget not set";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(budget);
+}
+
+function formatStatus(status: Job["status"]) {
+  if (!status) return "Open";
+  return status
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 export default function JobCard({
@@ -52,22 +70,25 @@ export default function JobCard({
         <Bookmark className={`h-4 w-4 ${bookmarked ? "fill-current" : ""}`} />
       </button>
 
-      {job.easilyApply && (
+      {job.status === "open" && (
         <span className="inline-block bg-rust/10 text-rust text-xs font-semibold px-2 py-0.5 rounded mb-2">
-          Easily apply
+          Open
         </span>
       )}
 
-      <h3 className="text-sm font-semibold text-navy dark:text-white pr-8">{job.title}</h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{job.company}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{job.location}</p>
+      <h3 className="text-sm font-semibold text-navy dark:text-white pr-8">
+        {job.title}
+      </h3>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        {job.location || "Location not specified"}
+      </p>
 
       <div className="flex flex-wrap gap-2 mt-3">
         <span className="bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded">
-          {job.pay}
+          {formatBudget(job.budget)}
         </span>
         <span className="bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded">
-          {job.type}
+          {formatStatus(job.status)}
         </span>
       </div>
     </div>

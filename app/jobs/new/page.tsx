@@ -3,26 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Layers, MapPin, DollarSign, Briefcase, X } from "lucide-react";
+import { Layers, MapPin, DollarSign, Calendar, X } from "lucide-react";
 import Button from "@/components/button";
-import { JobsProvider, useJobs } from "@/context/jobs-context";
+import { createClient } from "@/lib/supabase/client"; // adjust path if needed
 
-function NewJobForm() {
+export default function NewJobPage() {
   const router = useRouter();
-  const { addJob } = useJobs();
+  const supabase = createClient();
+
   const [formData, setFormData] = useState({
     title: "",
-    company: "",
     location: "",
-    pay: "",
-    type: "Full-time",
+    budget: "",
     description: "",
+    deadline: "",
     skillsInput: "",
   });
   const [skills, setSkills] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -38,45 +41,59 @@ function NewJobForm() {
     setSkills(skills.filter((s) => s !== skill));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.company || !formData.location || !formData.pay) {
-      setError("Please fill in all required fields");
+    setError("");
+
+    if (!formData.title.trim()) {
+      setError("Job title is required");
       return;
     }
-    addJob({
-      title: formData.title,
-      company: formData.company,
-      location: formData.location,
-      pay: formData.pay,
-      type: formData.type,
-      description: formData.description || "No description provided.",
-      skills,
-      easilyApply: true,
-      postedAt: new Date().toISOString(),
-    });
-    router.push("/jobs");
+
+    setLoading(true);
+
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        setError("You must be logged in to post a job");
+        setLoading(false);
+        return;
+      }
+
+      const { error: insertError } = await supabase.from("jobs").insert({
+        client_id: user.id,
+        title: formData.title.trim(),
+        description: formData.description.trim() || null,
+        budget: formData.budget ? Number(formData.budget) : null,
+        location: formData.location.trim() || null,
+        skills: skills.length > 0 ? skills : null,
+        status: "open",
+        deadline: formData.deadline || null,
+      });
+
+      if (insertError) {
+        setError(insertError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/jobs");
+      router.refresh();
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background font-sans">
-      <nav className="sticky top-0 z-50 bg-navy text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="p-1.5 bg-rust rounded-lg">
-                <Layers className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-wide">
-                <span className="text-rust">LABOR</span> CONNECT
-              </span>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold text-navy dark:text-white mb-2">Post a New Job</h1>
+        <h1 className="text-3xl font-bold text-navy dark:text-white mb-2">
+          Post a New Job
+        </h1>
         <p className="text-gray-500 dark:text-gray-400 mb-8">
           Fill in the details below to create a new job listing.
         </p>
@@ -89,8 +106,11 @@ function NewJobForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Title */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Job Title *</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Job Title *
+              </label>
               <input
                 type="text"
                 name="title"
@@ -102,21 +122,11 @@ function NewJobForm() {
               />
             </div>
 
+            {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Company *</label>
-              <input
-                type="text"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                required
-                className="block w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-rust focus:border-rust outline-none bg-white dark:bg-navy/50 text-gray-900 dark:text-white"
-                placeholder="e.g. Sunrise Hospital"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Location *</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Location
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MapPin className="h-5 w-5 text-gray-400" />
@@ -126,58 +136,65 @@ function NewJobForm() {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  required
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-rust focus:border-rust outline-none bg-white dark:bg-navy/50 text-gray-900 dark:text-white"
                   placeholder="e.g. Kochi, Kerala"
                 />
               </div>
             </div>
 
+            {/* Budget */}
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Pay Range *</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Budget
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <DollarSign className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="text"
-                  name="pay"
-                  value={formData.pay}
+                  type="number"
+                  name="budget"
+                  value={formData.budget}
                   onChange={handleChange}
-                  required
+                  min="0"
+                  step="0.01"
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-rust focus:border-rust outline-none bg-white dark:bg-navy/50 text-gray-900 dark:text-white"
-                  placeholder="e.g. ₹30,000 - ₹50,000 a month"
+                  placeholder="e.g. 35000"
                 />
               </div>
             </div>
 
+            {/* Deadline */}
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Job Type</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Deadline
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Briefcase className="h-5 w-5 text-gray-400" />
+                  <Calendar className="h-5 w-5 text-gray-400" />
                 </div>
-                <select
-                  name="type"
-                  value={formData.type}
+                <input
+                  type="date"
+                  name="deadline"
+                  value={formData.deadline}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-rust focus:border-rust outline-none bg-white dark:bg-navy/50 text-gray-900 dark:text-white"
-                >
-                  <option>Full-time</option>
-                  <option>Part-time</option>
-                  <option>Contract</option>
-                  <option>Internship</option>
-                </select>
+                />
               </div>
             </div>
 
+            {/* Skills */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Skills</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Skills
+              </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={formData.skillsInput}
-                  onChange={(e) => setFormData({ ...formData, skillsInput: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, skillsInput: e.target.value })
+                  }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -212,8 +229,11 @@ function NewJobForm() {
               )}
             </div>
 
+            {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">Description</label>
+              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                Description
+              </label>
               <textarea
                 name="description"
                 value={formData.description}
@@ -227,20 +247,15 @@ function NewJobForm() {
 
           <div className="flex items-center justify-end gap-4">
             <Link href="/jobs">
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary" type="button">
+                Cancel
+              </Button>
             </Link>
-            <Button type="submit">Publish Job</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Publishing..." : "Publish Job"}
+            </Button>
           </div>
         </form>
       </div>
-    </div>
-  );
-}
-
-export default function NewJobPage() {
-  return (
-    <JobsProvider>
-      <NewJobForm />
-    </JobsProvider>
   );
 }
